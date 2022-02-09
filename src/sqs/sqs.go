@@ -14,6 +14,7 @@ var (
 	timeout  *int64
 	queueURL *string
 	svc      *sqs.SQS
+	handle   string
 )
 
 func configuration() {
@@ -61,12 +62,13 @@ func ReadMessage() {
 	}
 
 	message := *msgResult.Messages[0].Body
-	//handle := *msgResult.Messages[0].ReceiptHandle
+	handle = *msgResult.Messages[0].ReceiptHandle
 
 	fmt.Println("Mensagem recebida: ", message)
 }
 
-func deleteMessage(handle string) {
+func DeleteMessage(handle string) {
+	configuration()
 	messageHandle := flag.String("m", handle, "The receipt handle of the message")
 	flag.Parse()
 
