@@ -1,59 +1,26 @@
 package sqs
 
 import (
-	"flag"
 	"fmt"
+	"src/config"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-var (
-	queue    *string
-	timeout  *int64
-	queueURL *string
-	svc      *sqs.SQS
-	handle   string
-)
-
-func configuration() {
-
-	queue = flag.String("q", "file-exemplo", "The name of the queue")
-	timeout = flag.Int64("t", 5, "How long, in seconds, that the message is hidden from others")
-	flag.Parse()
-
-	if *queue == "" {
-		fmt.Println("You must supply the name of a queue (-q QUEUE)")
-		return
-	}
-
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	}))
-
-	svc = sqs.New(sess)
-
-	urlResult, _ := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
-		QueueName: queue,
-	})
-
-	queueURL = urlResult.QueueUrl
-
-}
-
-func ReadMessage() {
-	configuration()
-	msgResult, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+func ReadMessage(config *config.Config, bath string) {
+	defer recoveryExecution()
+	fmt.Println("Starting reading message...", bath)
+	msgResult, err := config.Svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{
 			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
 		},
 		MessageAttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
 		},
-		QueueUrl:            queueURL,
+		QueueUrl:            config.QueueURL,
 		MaxNumberOfMessages: aws.Int64(1),
-		VisibilityTimeout:   timeout,
+		VisibilityTimeout:   config.Timeout,
 	})
 
 	if err != nil {
@@ -61,25 +28,23 @@ func ReadMessage() {
 		panic("erro to read sqs")
 	}
 
-	message := *msgResult.Messages[0].Body
-	handle = *msgResult.Messages[0].ReceiptHandle
+	if len(msgResult.Messages) != 0 {
+		handle := *msgResult.Messages[0].ReceiptHandle
+		fmt.Println("Deleting reading message...", bath)
+		DeleteMessage(handle, config)
+		message := *msgResult.Messages[0].Body
 
-	fmt.Println("Mensagem recebida: ", message)
+		fmt.Println("Mensagem recebida: ", message, bath)
+	} else {
+		fmt.Println("Queue is empty", bath)
+	}
 }
 
-func DeleteMessage(handle string) {
-	configuration()
-	messageHandle := flag.String("m", handle, "The receipt handle of the message")
-	flag.Parse()
+func DeleteMessage(handle string, config *config.Config) {
 
-	if *queue == "" || *messageHandle == "" {
-		fmt.Println("You must supply a queue name (-q QUEUE) and message receipt handle (-m MESSAGE-HANDLE)")
-		return
-	}
-
-	_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
-		QueueUrl:      queueURL,
-		ReceiptHandle: messageHandle,
+	_, err := config.Svc.DeleteMessage(&sqs.DeleteMessageInput{
+		QueueUrl:      config.QueueURL,
+		ReceiptHandle: &handle,
 	})
 
 	if err != nil {
@@ -88,15 +53,21 @@ func DeleteMessage(handle string) {
 	}
 }
 
-func PublishMessage(message string) {
-	configuration()
-	_, err := svc.SendMessage(&sqs.SendMessageInput{
+func PublishMessage(message string, config *config.Config) {
+	defer recoveryExecution()
+	_, err := config.Svc.SendMessage(&sqs.SendMessageInput{
 		DelaySeconds: aws.Int64(10),
 		MessageBody:  aws.String(message),
-		QueueUrl:     queueURL,
+		QueueUrl:     config.QueueURL,
 	})
 
 	if err != nil {
 		fmt.Println("Error to publish sqs")
+	}
+}
+
+func recoveryExecution() {
+	if r := recover(); r != nil {
+		fmt.Println("Panic recovery")
 	}
 }
