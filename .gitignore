@@ -36,3 +36,7 @@ terraform.rc
 
 .vscode
 .git
+
+# This file is maintained automatically by "terraform init".
+/terraform/terraform.tfstate
+/terraform/.terraform
