@@ -1,6 +1,6 @@
 # AWS SQS EXEMPLE 
 
-### build project 
+# Build project 
 
 ```
 cd src
@@ -24,4 +24,45 @@ configure `launch.json`
             "program": "${workspaceFolder}/src"
         }
     ]
+```
+
+# Create queue in aws 
+
+```
+cd terraform
+```
+
+```
+terraform init
+```
+
+```
+terraform plan
+```
+
+```
+terraform apply
+```
+
+OBS: importante lembrar que no arquivo ~./aws/credentials tem que ser suas keys da aws.
+exemplo: 
+
+```
+[default]
+aws_access_key_id = {key}
+aws_secret_access_key = {secret_key}
+```
+
+# Delete queue in aws
+
+```
+cd terraform
+```
+
+```
+terraform plan -destroy
+```
+
+```
+terraform apply -destroy
 ```

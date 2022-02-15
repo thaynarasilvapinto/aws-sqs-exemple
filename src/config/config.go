@@ -20,7 +20,7 @@ func Configuration() *Config {
 
 	var config Config = Config{}
 
-	var queue = flag.String("q", "file-exemplo", "The name of the queue")
+	var queue = flag.String("q", "terraform-example-queue", "The name of the queue")
 	config.Timeout = flag.Int64("t", 5, "How long, in seconds, that the message is hidden from others")
 	flag.Parse()
 
